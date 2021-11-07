@@ -1,0 +1,180 @@
+import Callout from 'nextra-theme-docs/callout'
+
+# squirrel
+
+<p className="flex h-6">
+  <img
+    alt="stars"
+    src="https://badgen.net/github/stars/wendellhu95/squirrel"
+    className="inline-block mr-2"
+  />
+  <img
+    alt="downloads"
+    src="https://badgen.net/npm/dt/@wendellhu/squirrel"
+    className="inline-block mr-2"
+  />
+  <img
+    alt="license"
+    src="https://badgen.net/github/license/wendellhu95/squirrel"
+    className="inline-block mr-2"
+  />
+</p>
+
+无需配置（或低配置）的 TypeScript 库打包工具，能够在项目中自动构建二级入口点。
+
+<Callout>
+squirrel 在其早期阶段，API 可能会随时发生变更。
+</Callout>
+
+## 使用
+
+在最简单的情况下，只需要在项目中运行：
+
+```sh
+npx run @wendellhu/squirrel
+```
+
+或者可以将下面一行添加到 package.json 文件中：
+
+```json highlight=3
+{
+  "scripts": {
+    "build": "squirrel"
+  }
+}
+```
+
+安装依赖并执行构建命令：
+
+```sh
+yarn add @wendellhu/squirrel -D
+yarn build
+```
+
+squirrel 会默认将 src/publicApi.ts 文件作为打包入口点，在 publish 目录下生成 ESM CJS UMD 三种格式的打包文件，你可以将 publish 文件夹内的内容发布到 npm。
+
+## 二级入口点
+
+squirrel 和其他的打包工具的主要区别在于它对**二级入口点**提供了开箱即用的支持。
+
+有些时候，你可能不想在包名路径下导出所有的 API，而是将部分 API 从某个子路径导出，这些子路径就叫做二级入口点。与之相对，从 src 目录底下直接导出的文件称为一级入口点。
+
+我们以 redi 为例。redi 是一个依赖注入库，它的核心部分代码从 `@wendellhu/redi` 目录导出，给 React 提供的特殊 API 从 `@wendellhu/redi/react-bindings` 目录导出：
+
+```ts
+import { Injector } from '@wendellhu/redi'
+
+import { connectDependencies } from '@wendellhu/redi/react-bindings' 
+```
+
+要创建二级入口点，只需要在 react-bindings 文件夹下创建一个 package.json 文件：
+
+```txt
+/src
+  publicApi.ts
+  /react-bindings
+    package.json
+    publicApi.ts
+```
+
+package.json 文件的内容如下所示：
+
+```json
+// package.json
+{
+    "$schema": "https://raw.githubusercontent.com/wendellhu95/squirrel/master/src/schema/squirrel.schema.json",
+    "entryFileName": "./publicApi.ts"
+}
+```
+
+squirrel 会搜索 src 目录下的所有 package.json 文件，将含有 package.json 文件的目录视为二级入口点，并 package.json 当中指定的 `entryFileName` 当作二级入口点的打包入口，squirrel 同时会将 src/publicApi.ts 视作一级入口点的打包入口。
+
+### 入口点封装和循环依赖检测
+
+squirrel 中禁止使用相对路径从其他二级入口点引入代码，squirrel 监测到二级入口点的封装性被破坏时会抛出错误。让我们用一个了例子来讲解，假设一个项目的名称是 hamster，它的目录结构如下图所示：
+
+
+```txt
+/src
+  /foo
+    package.json
+    bar.ts
+    qoo.ts
+  /buz
+    package.json
+    koo.ts
+  publicApi.ts
+```
+
+在 foo/bar 文件中，通过相对路径从二级入口点 buz 导入代码将会导致错误：
+
+```ts
+// foo/bar.ts
+import { thing } from './qoo' // ok, same entry point
+import { something } from '../buz/koo' // error! relatively from an another point
+```
+
+下面的语法则是合法的：
+
+```ts
+// foo/bar.ts
+import { thing } from './qoo' // ok, same entry point
+import { something } from 'hamster/buz' // ok
+```
+
+squirrel 同样会禁止各个二级入口点之间的循环依赖。如果存在如下的情形：
+
+```ts
+// foo/bar.ts
+import { something } from 'hamster/buz'
+```
+
+```ts
+// buz/koo.ts
+import { anotherThing } from 'hamster/foo' // error!
+```
+
+这种情况下 squirrel 会抛出错误，因为 buz 和 foo 两个二级入口点构成了循环依赖。
+
+通过检测二级入口点的封装性和循环依赖，squirrel 可以帮助开发者构建正确的项目结构。
+
+## 配置
+
+可以通过设置 package.json 文件中的一些字段来配置 squirrel。在二级入口点的 package.json 文件应当符合下面的 JSON schema，在项目根目录中的 package.json 文件应含有一个 squirrel 字段，squirrel 字段的值应当符合下面的 JSON schema。
+
+```json
+{
+    "$schema": {
+        "type": "string"
+    },
+    "dest": {
+        "description": "Destination for production files",
+        "type": "string",
+        "default": "publish"
+    },
+    "entryFileName": {
+        "description": "Entry file name",
+        "type": "string",
+        "default": "publicApi.ts"
+    },
+    "srcRoot": {
+        "description": "Root dir name of the source files",
+        "type": "string",
+        "default": "src"
+    },
+    "tsConfig": {
+        "description": "Relative path to the ts config file",
+        "type": "string",
+        "default": "tsconfig.json"
+    },
+    "copyFiles": {
+        "description": "Files should copied to dest folder",
+        "type": "array",
+        "default": ["README.md"]
+    }
+}
+```
+
+## 谁在使用
+
+* [redi](https://redi.wendell.fun)
