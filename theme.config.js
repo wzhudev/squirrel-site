@@ -1,6 +1,6 @@
 export default {
   github: 'https://github.com/wendellhu95/squirrel',
-  docsRepositoryBase: 'https://github.com/shuding/nextra/blob/master',
+  docsRepositoryBase: 'https://github.com/wendellhu95/squirrel-site/blob/master',
   titleSuffix: ' – squirrel',
   logo: (
     <>
@@ -16,15 +16,15 @@ export default {
       <meta name="theme-color" content="#ffffff" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <meta httpEquiv="Content-Language" content="en" />
-      <meta name="description" content="Nextra: the Next.js site builder" />
-      <meta name="og:description" content="Nextra: the Next.js site builder" />
+      <meta name="description" content="squirrel: no or low config bundler" />
+      <meta name="og:description" content="squirrel: no or low config bundler" />
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:image" content="https://nextra.vercel.app/og.png" />
+      {/* <meta name="twitter:image" content="https://nextra.vercel.app/og.png" />
       <meta name="twitter:site:domain" content="nextra.vercel.app" />
       <meta name="twitter:url" content="https://nextra.vercel.app" />
       <meta name="og:title" content="Nextra: Next.js static site generator" />
-      <meta name="og:image" content="https://nextra.vercel.app/og.png" />
-      <meta name="apple-mobile-web-app-title" content="Nextra" />
+      <meta name="og:image" content="https://nextra.vercel.app/og.png" /> */}
+      {/* <meta name="apple-mobile-web-app-title" content="Nextra" /> */}
       <link
         rel="apple-touch-icon"
         sizes="180x180"
@@ -61,7 +61,20 @@ export default {
   prevLinks: true,
   nextLinks: true,
   footer: true,
-  footerEditLink: 'Edit this page on GitHub',
+  footerEditLink: ({ locale }) => {
+    switch (locale) {
+      case "zh-CN":
+        return "在 GitHub 上编辑本页";
+      case "es-ES":
+        return "Edite esta página en GitHub";
+      case "ja":
+        return "Github で編集する";
+      case "ko":
+        return "Github에서 이 페이지 편집하기";
+      default:
+        return "Edit this page on GitHub";
+    }
+  },
   footerText: <>MIT {new Date().getFullYear()} © Wendell</>,
   unstable_faviconGlyph: '🐿️',
 }
